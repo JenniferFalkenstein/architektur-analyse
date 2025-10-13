@@ -1,0 +1,23 @@
+{
+  "name": "test-projekt",
+  "version": "1.0.0",
+  "main": "./backend/index.ts",
+  "scripts": {
+    "start": "ts-node ./src/main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dep-cruise": "npx depcruise backend --include-only \"^backend\" --output-type dot | dot -T svg > dependency-graph.svg",
+    "dependency-graph": "depcruise --output-type json backend > dependency-tree.json"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "dependency-cruiser": "^17.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "winston": "^3.17.0"
+  },
+  "dependencies": {
+    "ts-morph": "^26.0.0"
+  }
+}
