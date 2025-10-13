@@ -252,7 +252,7 @@ class Maintainability implements MaintainabilityInterface {
       `## Problemmodule`,
       `| Modul | Probleme |`,
       `| -------- | -------- |`,
-      `${Object.entries(this.reduceIssues()).sort((a, b) => b[1].issues.length - a[1].issues.length).map(([filePath, info]) => `| [${filePath}](${filePath}) | ${info.issues.map((issue, index) => `${info.issues.length > 1 ? `${index + 1}. ` : ''}${issue}`).join('<br>')} |`).join('\n')}`,
+      `${Object.entries(this.reduceIssues()).sort((a, b) => b[1].issues.length - a[1].issues.length).map(([filePath, info]) => `| ${filePath} | ${info.issues.map((issue, index) => `${info.issues.length > 1 ? `${index + 1}. ` : ''}${issue}`).join('<br>')} |`).join('\n')}`,
     ].join('\n')
   }
 
