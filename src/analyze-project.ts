@@ -9,8 +9,8 @@ import logger from "./helper/logger";
 async function analyzeProject(filePath: string): Promise<void> {
   logger.info(`Analyzing project at: ${filePath}`);
   // TODO: vielleicht mit in den Befehl noch die tsconfig mitgeben
-  const configFile = getConfig();
-  await runNpmScript(`depcruise --output-type json ${filePath} > ${DEPENDENCY_TREE_PATH}`);
+  // const configFile = getConfig();
+  // await runNpmScript(`depcruise --output-type json ${filePath} > ${DEPENDENCY_TREE_PATH}`);
 
   const projectStructure = await analyzeProjectStructure(filePath);
 
