@@ -136,7 +136,7 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
 
     // TODO: Unterscheidung zwischen Anzahl der exportierten Funktionen (was passiert bei nur einer exportierten Funktion?)
     if (!foundDomain || foundDomain[1] < 2) { // Wenn kein Keyword gefunden wurde oder das häufigste Keyword nur einmal vorkommt
-      return { score: 0, issue: `Für dieses Modul konnte keine gemeinsame Hauptdomäne gefunden werden.`};
+      return { score: 0, issue: `Für dieses Modul konnte keine gemeinsame Hauptdomäne gefunden werden. Kohäsion ist daher nicht gegeben!`};
     }
 
     // 4. Überprüfe, ob es eine Sub-Domäne gibt (z.B. "UserCart" statt nur "User")
@@ -171,7 +171,7 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
 
     if (score < THRESHOLD) {
       const notMatchingFunctions = functionNames.filter(name => !name.includes(foundDomain[0]) && !(foundSubDomain && name.includes(foundSubDomain[0]))).join(', ');
-      return { score, issue: `Folgende Funktionen scheinen weder mit der Hauptdomäne ("${foundDomain[0]}"), noch mit der Sub-Domäne (${foundSubDomain ? foundSubDomain[0] : 'Keine Subdomäne gefunden'}) übereinzustimmen: ${notMatchingFunctions}` }
+      return { score, issue: `Kohäsion wird durch folgende Funktionen beeinträchtig, da sie weder mit der Hauptdomäne ("${foundDomain[0]}"), noch mit der Sub-Domäne (${foundSubDomain ? foundSubDomain[0] : 'Keine Subdomäne gefunden'}) übereinzustimmen scheinen: ${notMatchingFunctions}` }
     }
     return { score };
   }
