@@ -1,4 +1,4 @@
-enum Fuzzy {
+enum Grade {
   EXCELLENT = 1,
   GOOD  = 2,
   OKAY = 3,
@@ -6,23 +6,23 @@ enum Fuzzy {
   HORRIBLE = 5
 }
 
-const mapFuzzyToWording = (value: number): string => {
+const mapGradeToWording = (value: number): string => {
   const roundedNumber = Math.round(value);
   switch(roundedNumber) {
-    case Fuzzy.EXCELLENT:
+    case Grade.EXCELLENT:
       return 'Hervorragend (=1)';
-    case Fuzzy.GOOD:
+    case Grade.GOOD:
       return 'Gut (=2)';
-    case Fuzzy.OKAY:
+    case Grade.OKAY:
       return 'Okay (=3)';
-    case Fuzzy.NOT_GOOD:
-      return 'Nicht Okay (=4)'
-    case Fuzzy.HORRIBLE:
+    case Grade.NOT_GOOD:
+      return 'Nicht Gut (=4)'
+    case Grade.HORRIBLE:
       return 'Grauenvoll (=5)'
   }
 }
 
 export {
-  Fuzzy,
-  mapFuzzyToWording,
+  Grade,
+  mapGradeToWording,
 }

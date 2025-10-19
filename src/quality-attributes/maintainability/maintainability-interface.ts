@@ -1,25 +1,20 @@
-import { Fuzzy } from "../../global/fuzzy-metric";
 import { Score } from "../../types";
-import { BaseQualityAttributeInterface } from "../base/interface";
+import { BaseQualityAttributeInterface } from "../base/base-quality-attribute-interface";
 
 interface MaintainabilityInterface extends BaseQualityAttributeInterface {
-  score: {
+  subAttributes: {
     analyzability: Score;
     modifiability: Score;
     testability: Score;
     modularity: Score;
     reusability: Score;
   }
-  weight: number;
-  overallScore: Fuzzy;
 
   calculateAnalyzability(): void;
   calculateModifiability(): void;
   calculateTestability(): void;
   calculateModularity(): void;
   calculateReusability(): void;
-
-  interpreteResults(): string;
 }
 
 export {

@@ -1,17 +1,19 @@
 
+import { Grade } from "../global/grade-scale";
 import { ProjectStructureReport } from "../helper/analyze-project-structure";
-import { MaintainabilityInterface } from "./maintainability/interface";
+import { MaintainabilityInterface } from "./maintainability/maintainability-interface";
 
   interface QualityAnalyzerInterface {
     qualityAttributes: {
       maintainability: MaintainabilityInterface;
       // Leicht erweiterbar durch weitere Qualitätsmerkmale, siehe folgende Codezeile:
-      // reliability: Reliability;
+      // reliability: ReliabilityInterface;
     }
 
-  calculateOverallScore(): number;
+  calculateOverallGrade(): number;
 
   analyze(projectStructure: ProjectStructureReport): void;
+  writeResults(overallGrade: Grade): string;
 }
 
 export {

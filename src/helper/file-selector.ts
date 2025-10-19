@@ -3,10 +3,9 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-// TODO: Schöner schreiben (vor allem Deutsch)
 async function selectPath(): Promise<string> {
   try {
-    // Versuche System-Dialog
+    // Öffne System-Dialog für Ordner-Auswahl (macOS)
     const command = `osascript -e '
       tell application "System Events"
         activate
@@ -25,11 +24,11 @@ async function selectPath(): Promise<string> {
     throw new Error('Dialog abgebrochen');
 
   } catch (error) {
-    // Fallback zur Konsolen-Auswahl
+    // Fallback zur Konsolen-Auswahl oder Config-Datei. Müsste man hier noch implementieren
     return
   }
 }
-// Export für andere Module
+
 export {
   selectPath
 }

@@ -19,15 +19,6 @@ type ProjectStructureReport = {
 
 const structure: ProjectStructure = {}
 
-// async function hasDir(dirPath: string, pathNames: string[]): Promise<boolean> {
-//   for (const name of pathNames) {
-//     const fullPath = path.join(dirPath, name);
-//     const stats = fs.statSync(fullPath);
-//     if (stats.isDirectory()) return true;
-//   }
-//   return false;
-// }
-
 async function checkIsModule(filePath: string): Promise<boolean> {
   const project = new Project();
   project.addSourceFileAtPath(filePath);
@@ -79,11 +70,6 @@ async function analyzeDir(dirPath: string, packagePath?: string, previousPackage
     }
   }
 }
-
-// function countModules(structure: ProjectStructure): number {
-//   const totalModules = Object.values(structure).reduce((currentValue, pkg) => currentValue + Object.keys(pkg.modules).length, 0);
-//   return totalModules;
-// }
 
 function createFlatModuleArray(structure: ProjectStructure): string[] {
   const modules = [];

@@ -1,28 +1,28 @@
 import { FunctionDeclaration, Project, SyntaxKind } from "ts-morph";
-import { Algorithm } from "../interface";
+import { Algorithm } from "../algorithm-interface";
 import logger from "../../helper/logger";
-import { Fuzzy, mapFuzzyToWording } from "../../global/fuzzy-metric";
+import { Grade, mapGradeToWording } from "../../global/grade-scale";
 import { ProjectStructureReport } from "../../helper/analyze-project-structure";
 import { addAllFilesToProject } from "../../helper/ts-morph-project-helper";
 
 class FunctionLength implements Algorithm {
-  fuzzyScore: Fuzzy;
+  grade: Grade;
   name = "Funktionslänge";
   description = "Misst die Größe eines Moduls basierend auf ihrer Anzahl von Zeilen an Code (LOC = Lines of Code). Eine exzessive Länge deutet oft auf eine Verletzung des Single Responsibility Principle (SRP), erschwerte Wartung, geringere Verständlichkeit und potenziell hohe Komplexität hin.";
   score: number;
-  detailed: { filePath: string; moduleName: string; moduleScore: number; fuzzyScore?: number; details?: string; }[] = [];
+  detailed: { filePath: string; moduleName: string; moduleScore: number; grade?: number; details?: string; }[] = [];
   issues: {
     filePath: string;
     moduleName: string;
     moduleScore: number;
-    fuzzyScore: Fuzzy;
+    grade: Grade;
     details: {
       description?: string;
     };
   }[] = [];
 
-  addToIssue(moduleName: string, filePath: string, moduleScore: number, fuzzyScore: number, description?: string) {
-    this.issues.push({ moduleName, filePath, moduleScore, fuzzyScore, details: { description } });
+  addToIssue(moduleName: string, filePath: string, moduleScore: number, grade: number, description?: string) {
+    this.issues.push({ moduleName, filePath, moduleScore, grade, details: { description } });
   }
 
   calculate(projectStructure: ProjectStructureReport): void {
@@ -46,47 +46,47 @@ class FunctionLength implements Algorithm {
       // Berechne die Zyklomatische Komplexität jeder Funktion im Modul
       functions.forEach(func => {
         const functionScore = this.calculateLLOC(func);
-        const functionFuzzyValue = this.evaluateScore(functionScore);
+        const functionGrade = this.interpreteScore(functionScore);
         functionScoresForModule.push(functionScore);
 
-        if (functionFuzzyValue === Fuzzy.HORRIBLE || functionFuzzyValue === Fuzzy.NOT_GOOD) {
+        if (functionGrade === Grade.HORRIBLE || functionGrade === Grade.NOT_GOOD) {
           moduleIssues.push(`Funktion \`${func.getName()}\` in dem Modul hat eine Größe von ${functionScore} Zeilen`);
         }
       });
 
       // Berechne die Zyklomatische Komplexität für das jeweilige Modul
       const moduleScore = this.calculateMean(functionScoresForModule);
-      const moduleFuzzyScore = this.evaluateScore(moduleScore);
+      const moduleGrade = this.interpreteScore(moduleScore);
 
       this.detailed.push({
         filePath: sourceFile.getFilePath(),
         moduleName: sourceFile.getBaseName(),
         moduleScore: moduleScore,
-        fuzzyScore: moduleFuzzyScore,
+        grade: moduleGrade,
       })
-      logger.debug(`${sourceFile.getFilePath()} has score of ${moduleScore} and Fuzzy of (=${mapFuzzyToWording(moduleFuzzyScore)})`);
+      logger.debug(`${sourceFile.getFilePath()} has score of ${moduleScore} and Grade of (=${mapGradeToWording(moduleGrade)})`);
 
       if (moduleIssues.length > 0) {
         const moduleName = sourceFile.getBaseName();
         const filePath = sourceFile.getFilePath();
-        this.addToIssue(moduleName, filePath, moduleScore, moduleFuzzyScore, `${moduleIssues.join('')}`);
+        this.addToIssue(moduleName, filePath, moduleScore, moduleGrade, `${moduleIssues.join('')}`);
       }
       moduleScores.push(moduleScore);
     }
 
     const overAllScore = this.calculateMean(moduleScores);
-    const overAllFuzzyScore = this.evaluateScore(overAllScore);
-    this.fuzzyScore = overAllFuzzyScore;
+    const overAllGrade = this.interpreteScore(overAllScore);
+    this.grade = overAllGrade;
     this.score = overAllScore;
   }
 
-  interpreteResults(): string {
+  writeResult(): string {
     return [
 `**${this.name}**`,
 ' ',
 `*Beschreibung: ${this.description}*`,
 ' ',
-`Gesamt-Größe: ${mapFuzzyToWording(this.fuzzyScore)}`,
+`Gesamt-Größe: ${mapGradeToWording(this.grade)}`,
 ' ',
 `**Interpretation der Werte:**`,
 `| Score | Bewertung |`,
@@ -101,8 +101,8 @@ class FunctionLength implements Algorithm {
 `| Modul | Score | Beschreibung |`,
 `| -------- | -------- | -------- |`,
 this.issues.length === 0 && 'keine Problem-Module gefunden',
-this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
-  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Fuzzy-Score: ${issue.fuzzyScore} = ${mapFuzzyToWording(issue.fuzzyScore)}) | ${issue.details.description} |`
+this.issues.sort((a, b) => b.grade - a.grade).map(issue => {
+  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Bewertungsskala: ${issue.grade} = ${mapGradeToWording(issue.grade)}) | ${issue.details.description} |`
 }).join('\n'),
 '-----',
 `**Verbesserungsvorschläge:**`,
@@ -133,17 +133,17 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     return mean;
   }
 
-  evaluateScore(score: number): Fuzzy {
+  interpreteScore(score: number): Grade {
     if (score >= 0 && score <= 15) {
-      return Fuzzy.EXCELLENT;
+      return Grade.EXCELLENT;
     } else if (score > 15 && score <= 25) {
-      return Fuzzy.GOOD;
+      return Grade.GOOD;
     } else if (score > 25 && score <= 40) {
-      return Fuzzy.OKAY
+      return Grade.OKAY
     } else if (score > 40 && score < 60) {
-      return Fuzzy.NOT_GOOD;
+      return Grade.NOT_GOOD;
     } else {
-      return Fuzzy.HORRIBLE;
+      return Grade.HORRIBLE;
     }
   }
 

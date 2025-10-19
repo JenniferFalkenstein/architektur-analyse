@@ -1,26 +1,7 @@
-import { Fuzzy } from "../global/fuzzy-metric";
+import { Grade } from "../global/grade-scale";
 
-type LayeredArchitectureConfig = {
-  layers: {
-    name: string;
-    path: string[];
-    canOnlyDependOnLayers: string[];
-  }[];
-}
-
-type Config = {
-  structure: {
-    backendPath: string;
-    frontendPath: string;
-    testsPath: string;
-  }
-  layeredArchitecture: LayeredArchitectureConfig
-}
-
-type Score = { weight: number, fuzzy: Fuzzy };
+type Score = { weight: number, grade: Grade };
 
 export type {
-  Config,
-  LayeredArchitectureConfig,
   Score
 }

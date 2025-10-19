@@ -1,21 +1,21 @@
 import { FunctionDeclaration, Project, SourceFile, SyntaxKind } from "ts-morph";
-import { Algorithm } from "../interface";
+import { Algorithm } from "../algorithm-interface";
 import logger from "../../helper/logger";
-import { Fuzzy, mapFuzzyToWording } from "../../global/fuzzy-metric";
+import { Grade, mapGradeToWording } from "../../global/grade-scale";
 import { ProjectStructureReport } from "../../helper/analyze-project-structure";
 import { addAllFilesToProject } from "../../helper/ts-morph-project-helper";
 
 class PropagationCost implements Algorithm {
-  fuzzyScore: Fuzzy;
+  grade: Grade;
   name = "Propagation Cost (Ausbreitungskosten)";
   description = "Misst die Propagation Cost eines Moduls, indem die potenziellen Auswirkungen einer Änderung an diesem Modul auf andere abhängige Module analysiert werden. Hierbei werden nicht nur direkt abhängige Module analysiert, sondern auch indirekt abhängige. Beispiel: Modul A beeinflusst direkt Modul B. Modul C greift aber auch auf Modul B zu, daher wird Modul C indirekt von Modul A mitbeeinflusst. Ein hoher Wert deutet darauf hin, dass eine Änderung dieses Moduls eine **Kaskade von Folgeänderungen** oder umfangreiche Regressionstests in anderen Teilen der Anwendung erfordert.";
   score: number;
-  detailed: { filePath: string; moduleName: string; moduleScore: number; fuzzyScore?: number; details?: string; }[] = [];
+  detailed: { filePath: string; moduleName: string; moduleScore: number; grade?: number; details?: string; }[] = [];
   issues: {
     filePath: string;
     moduleName: string;
     moduleScore: number;
-    fuzzyScore: Fuzzy;
+    grade: Grade;
     details: {
       description?: string;
     };
@@ -27,8 +27,8 @@ class PropagationCost implements Algorithm {
       moduleName: string,
   }} = {};
 
-  addToIssue(moduleName: string, filePath: string, moduleScore: number, fuzzyScore: number, description?: string) {
-    this.issues.push({ moduleName, filePath, moduleScore, fuzzyScore, details: { description } });
+  addToIssue(moduleName: string, filePath: string, moduleScore: number, grade: number, description?: string) {
+    this.issues.push({ moduleName, filePath, moduleScore, grade, details: { description } });
   }
 
   isExternalPackage(pathname: string): boolean {
@@ -49,7 +49,7 @@ class PropagationCost implements Algorithm {
 
       // Wenn Dependency Zyklus gefunden wird
       if (paths.includes(sourceFilePath)) {
-        logger.error(`Zyklische Abhängigkeit gefunden: ${[...paths, sourceFilePath].join(' --> ')}`);
+        logger.debug(`Zyklische Abhängigkeit gefunden: ${[...paths, sourceFilePath].join(' --> ')}`);
         this.addToModuleTree(sourceFile.getFilePath(), sourceFile.getBaseName(), paths);
         return;
       }
@@ -61,7 +61,6 @@ class PropagationCost implements Algorithm {
       }
     }
 
-    // TODO: is this correct??
     this.addToModuleTree(sourceFile.getFilePath(), sourceFile.getBaseName(), paths);
   }
 
@@ -80,21 +79,21 @@ class PropagationCost implements Algorithm {
     const moduleScores: number[] = []
     for (const [modulePath, moduleInfo] of Object.entries(this.moduleTree)) {
       const score = moduleInfo.affectedModules.size / allModuleCount;
-      const fuzzyScore = this.evaluateScore(score);
+      const grade = this.interpreteScore(score);
 
       this.detailed.push({
         filePath: modulePath,
         moduleName: moduleInfo.moduleName,
         moduleScore: score,
-        fuzzyScore: fuzzyScore,
+        grade: grade,
       })
 
-      if (fuzzyScore === Fuzzy.HORRIBLE || fuzzyScore === Fuzzy.NOT_GOOD) {
-        this.addToIssue(moduleInfo.moduleName, modulePath, score, fuzzyScore, `Dieses Modul hat eine hohe Propagation Cost von ${score.toFixed(2)}, da es ${moduleInfo.affectedModules.size} von insgesamt ${allModuleCount} Modulen beeinflusst`)
+      if (grade === Grade.HORRIBLE || grade === Grade.NOT_GOOD) {
+        this.addToIssue(moduleInfo.moduleName, modulePath, score, grade, `Dieses Modul hat eine hohe Propagation Cost von ${score.toFixed(2)}, da es ${moduleInfo.affectedModules.size} von insgesamt ${allModuleCount} Modulen beeinflusst`)
       }
 
       if (moduleInfo.hasCycleDependency) {
-        this.addToIssue(moduleInfo.moduleName, modulePath, score, fuzzyScore, `Dieses Modul hat einen Abhängigkeitszyklus mit anderen Modulen`)
+        this.addToIssue(moduleInfo.moduleName, modulePath, score, grade, `Dieses Modul hat einen Abhängigkeitszyklus mit anderen Modulen`)
       }
       moduleScores.push(score);
     }
@@ -116,18 +115,18 @@ class PropagationCost implements Algorithm {
     const moduleScores = this.calculatePP(projectStructure.flatModuleMap.length);
 
     const overAllScore = this.calculateMean(moduleScores);
-    const overAllFuzzyScore = this.evaluateScore(overAllScore);
-    this.fuzzyScore = overAllFuzzyScore;
+    const overallGrade = this.interpreteScore(overAllScore);
+    this.grade = overallGrade;
     this.score = overAllScore;
   }
 
-  interpreteResults(): string {
+  writeResult(): string {
     return [
 `**${this.name}**`,
 ' ',
 `*Beschreibung: ${this.description}*`,
 ' ',
-`Gesamt-Komplexität: ${mapFuzzyToWording(this.fuzzyScore)}`,
+`Gesamt-Komplexität: ${mapGradeToWording(this.grade)}`,
 ' ',
 `**Interpretation der Werte:**`,
 `| Score | Bewertung |`,
@@ -142,12 +141,12 @@ class PropagationCost implements Algorithm {
 `| Modul | Score | Beschreibung |`,
 `| -------- | -------- | -------- |`,
 this.issues.length === 0 && 'keine Problem-Module gefunden',
-this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
-  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Fuzzy-Score: ${issue.fuzzyScore} = ${mapFuzzyToWording(issue.fuzzyScore)}) | ${issue.details.description} |`
+this.issues.sort((a, b) => b.grade - a.grade).map(issue => {
+  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Bewertungsskala: ${issue.grade} = ${mapGradeToWording(issue.grade)}) | ${issue.details.description} |`
 }).join('\n'),
 '-----',
 `**Verbesserungsvorschläge:**`,
-`- **Reduziere die Anzahl der abhängigen Module (Afferent Coupling):** Versuche, die Anzahl der Stellen im Code zu verringern, die dieses Modul importieren, da jede dieser Stellen bei einer Änderung betroffen sein kann`,
+`- **Reduziere die Anzahl der abhängigen Module (Efferent Coupling):** Versuche, die Anzahl der Stellen im Code zu verringern, die dieses Modul importieren, da jede dieser Stellen bei einer Änderung betroffen sein kann`,
 `- **Wende das Dependency Inversion Principle (DIP) an:** Mache das Modul von Abstraktionen (Interfaces) abhängig statt von konkreten Implementierungen (Dependency Injection), um die Richtung der Abhängigkeit umzukehren`,
 `- **Kapsle interne Details:** Mache Implementierungsdetails (z.B. interne Datenstrukturen, private Hilfsfunktionen) nicht über die öffentliche Schnittstelle zugänglich, um zu verhindern, dass externe Module von ihnen abhängig werden`,
 `- **Vermeide globale veränderbare Zustände:** Stelle sicher, dass das Modul keinen globalen Zustand verwaltet oder ändert, auf den viele andere Module zugreifen, da dies zu unvorhersehbaren Seiteneffekten führt`,
@@ -164,17 +163,17 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     return mean;
   }
 
-  evaluateScore(score: number): Fuzzy {
+  interpreteScore(score: number): Grade {
     if (score >= 0 && score <= 0.1) {
-      return Fuzzy.EXCELLENT;
+      return Grade.EXCELLENT;
     } else if (score > 0.1 && score <= 0.2) {
-      return Fuzzy.GOOD;
+      return Grade.GOOD;
     } else if (score > 0.2 && score <= 0.3) {
-      return Fuzzy.OKAY;
+      return Grade.OKAY;
     } else if (score > 0.3 && score <= 0.5) {
-      return Fuzzy.NOT_GOOD
+      return Grade.NOT_GOOD
     } else {
-      return Fuzzy.HORRIBLE;
+      return Grade.HORRIBLE;
     }
   }
 

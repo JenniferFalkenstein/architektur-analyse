@@ -1,6 +1,6 @@
-import { QualityAnalyzerInterface } from "./interface";
-import { MaintainabilityInterface } from "./maintainability/interface";
-import { mapFuzzyToWording } from "../global/fuzzy-metric";
+import { QualityAnalyzerInterface } from "./quality-analyzer-interface";
+import { MaintainabilityInterface } from "./maintainability/maintainability-interface";
+import { Grade, mapGradeToWording } from "../global/grade-scale";
 import { ProjectStructureReport } from "../helper/analyze-project-structure";
 import * as fs from 'fs';
 
@@ -28,24 +28,24 @@ class QualityAnalyzer implements QualityAnalyzerInterface {
     // Erweiterung:
     // this.qualityAttributes.performanceEfficiency.analyze(projectStructure);
 
-    const overallScore = this.calculateOverallScore();
-    const report = this.interpreteResults(overallScore)
+    const overallGrade = this.calculateOverallGrade();
+    const report = this.writeResults(overallGrade)
 
     fs.writeFileSync('result/REPORT.md', report, 'utf-8');
   }
 
-  calculateOverallScore(): number {
+  calculateOverallGrade(): number {
     const keys = Object.keys(this.qualityAttributes);
     const values = Object.values(this.qualityAttributes);
 
-    return values.reduce((currentNumber, attribute) => currentNumber + (attribute.overallScore * attribute.weight), 0) / keys.length;;
+    return values.reduce((currentNumber, attribute) => currentNumber + (attribute.overallGrade * attribute.weight), 0) / keys.length;;
   }
 
-  interpreteResults(overallScore: number): string {
+  writeResults(overallGrade: Grade): string {
     return [
       `# Projekt-Bewertung`,
-      `Ergebnis: ${overallScore} (=${mapFuzzyToWording(overallScore)})`,
-      this.qualityAttributes.maintainability.interpreteResults(),
+      `Ergebnis: ${overallGrade} (=${mapGradeToWording(overallGrade)})`,
+      this.qualityAttributes.maintainability.writeResults(),
     ].join('\n')
   }
 }

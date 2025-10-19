@@ -1,28 +1,28 @@
 import { FunctionDeclaration, Project, SyntaxKind } from "ts-morph";
-import { Algorithm } from "../interface";
+import { Algorithm } from "../algorithm-interface";
 import logger from "../../helper/logger";
-import { Fuzzy, mapFuzzyToWording } from "../../global/fuzzy-metric";
+import { Grade, mapGradeToWording } from "../../global/grade-scale";
 import { ProjectStructureReport } from "../../helper/analyze-project-structure";
 import { addAllFilesToProject } from "../../helper/ts-morph-project-helper";
 
 class McCabeCyclomaticComplexity implements Algorithm {
-  fuzzyScore: Fuzzy;
+  grade: Grade;
   name = "Zyklomatische Komplexität";
   description = "Misst die Zyklomatische Komplexität einer Methode basierend auf der **Anzahl unabhängiger Pfade** im Kontrollflussgraphen nach der Formel von McCabe. Ein hoher Wert (erzeugt durch beispielsweise viele Verzweigungen) deutet auf eine schwer verständliche, fehleranfällige und testintensive Methode hin.";
   score: number;
-  detailed: { filePath: string; moduleName: string; moduleScore: number; fuzzyScore?: number; details?: string; }[] = [];
+  detailed: { filePath: string; moduleName: string; moduleScore: number; grade?: number; details?: string; }[] = [];
   issues: {
     filePath: string;
     moduleName: string;
     moduleScore: number;
-    fuzzyScore: Fuzzy;
+    grade: Grade;
     details: {
       description?: string;
     };
   }[] = [];
 
-  addToIssue(moduleName: string, filePath: string, moduleScore: number, fuzzyScore: number, description?: string) {
-    this.issues.push({ moduleName, filePath, moduleScore, fuzzyScore, details: { description } });
+  addToIssue(moduleName: string, filePath: string, moduleScore: number, grade: number, description?: string) {
+    this.issues.push({ moduleName, filePath, moduleScore, grade, details: { description } });
   }
 
   calculate(projectStructure: ProjectStructureReport): void {
@@ -46,47 +46,47 @@ class McCabeCyclomaticComplexity implements Algorithm {
       // Berechne die Zyklomatische Komplexität jeder Funktion im Modul
       functions.forEach(func => {
         const functionScore = this.calculateCC(func);
-        const functionFuzzyValue = this.evaluateScore(functionScore);
+        const functionGrade = this.interpreteScore(functionScore);
         functionScoresForModule.push(functionScore);
 
-        if (functionFuzzyValue === Fuzzy.HORRIBLE || functionFuzzyValue === Fuzzy.NOT_GOOD) {
-          moduleIssues.push(`Funktion ${func.getName()} hat eine Zyklomatische Komplexität von ${functionScore} (=${mapFuzzyToWording(functionFuzzyValue)})`);
+        if (functionGrade === Grade.HORRIBLE || functionGrade === Grade.NOT_GOOD) {
+          moduleIssues.push(`Funktion ${func.getName()} hat eine Zyklomatische Komplexität von ${functionScore} (=${mapGradeToWording(functionGrade)})`);
         }
       });
 
       // Berechne die Zyklomatische Komplexität für das jeweilige Modul
       const moduleScore = this.calculateMean(functionScoresForModule);
-      const moduleFuzzyScore = this.evaluateScore(moduleScore);
+      const moduleGrade = this.interpreteScore(moduleScore);
 
       this.detailed.push({
         filePath: sourceFile.getFilePath(),
         moduleName: sourceFile.getBaseName(),
         moduleScore: moduleScore,
-        fuzzyScore: moduleFuzzyScore,
+        grade: moduleGrade,
       })
-      logger.debug(`${sourceFile.getFilePath()} has score of ${moduleScore} and Fuzzy of (=${mapFuzzyToWording(moduleFuzzyScore)})`);
+      logger.debug(`${sourceFile.getFilePath()} has score of ${moduleScore} and Grade of (=${mapGradeToWording(moduleGrade)})`);
 
       if (moduleIssues.length > 0) {
         const moduleName = sourceFile.getBaseName();
         const filePath = sourceFile.getFilePath();
-        this.addToIssue(moduleName, filePath, moduleScore, moduleFuzzyScore, `${moduleIssues.join('')}`);
+        this.addToIssue(moduleName, filePath, moduleScore, moduleGrade, `${moduleIssues.join('')}`);
       }
       moduleScores.push(moduleScore);
     }
 
     const overAllScore = this.calculateMean(moduleScores);
-    const overAllFuzzyScore = this.evaluateScore(overAllScore);
-    this.fuzzyScore = overAllFuzzyScore;
+    const overAllGrade = this.interpreteScore(overAllScore);
+    this.grade = overAllGrade;
     this.score = overAllScore;
   }
 
-  interpreteResults(): string {
+  writeResult(): string {
     return [
 `**${this.name}**`,
 ' ',
 `*Beschreibung: ${this.description}*`,
 ' ',
-`Gesamt-Komplexität: ${mapFuzzyToWording(this.fuzzyScore)}`,
+`Gesamt-Komplexität: ${mapGradeToWording(this.grade)}`,
 ' ',
 `**Interpretation der Werte:**`,
 `| Score | Bewertung |`,
@@ -101,8 +101,8 @@ class McCabeCyclomaticComplexity implements Algorithm {
 `| Modul | Score | Beschreibung |`,
 `| -------- | -------- | -------- |`,
 this.issues.length === 0 && 'keine Problem-Module gefunden',
-this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
-  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Fuzzy-Score: ${issue.fuzzyScore} = ${mapFuzzyToWording(issue.fuzzyScore)}) | ${issue.details.description} |`
+this.issues.sort((a, b) => b.grade - a.grade).map(issue => {
+  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Bewertungsskala: ${issue.grade} = ${mapGradeToWording(issue.grade)}) | ${issue.details.description} |`
 }).join('\n'),
 '-----',
 `**Verbesserungsvorschläge:**`,
@@ -148,17 +148,17 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     return mean;
   }
 
-  evaluateScore(score: number): Fuzzy {
+  interpreteScore(score: number): Grade {
     if (score >= 0 && score <= 10) {
-      return Fuzzy.EXCELLENT;
+      return Grade.EXCELLENT;
     } else if (score > 10 && score <= 20) {
-      return Fuzzy.GOOD;
+      return Grade.GOOD;
     } else if (score > 20 && score < 30) {
-      return Fuzzy.NOT_GOOD;
+      return Grade.NOT_GOOD;
     } else if (score > 30 && score < 40) {
-      return Fuzzy.NOT_GOOD;
+      return Grade.NOT_GOOD;
     } else {
-      return Fuzzy.HORRIBLE;
+      return Grade.HORRIBLE;
     }
   }
 

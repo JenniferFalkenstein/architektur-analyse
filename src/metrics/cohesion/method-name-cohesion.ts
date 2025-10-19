@@ -1,9 +1,9 @@
 import { Project } from "ts-morph";
-import { Algorithm } from "../interface";
+import { Algorithm } from "../algorithm-interface";
 import logger from "../../helper/logger";
 import { splitCamelCase } from "../../helper/split-camel-case";
 import { findSubDomainTermWithContext } from "../../helper/analyze-domain";
-import { Fuzzy, mapFuzzyToWording } from "../../global/fuzzy-metric";
+import { Grade, mapGradeToWording } from "../../global/grade-scale";
 import { ProjectStructureReport } from "../../helper/analyze-project-structure";
 import { addAllFilesToProject } from "../../helper/ts-morph-project-helper";
 
@@ -11,23 +11,23 @@ const THRESHOLD = 0.5;
 const COHESION_MODE: 'STRICT' | 'LENIENT' = 'STRICT'; // STRICT = nur exakte Übereinstimmung in einem Modul, LENIENT = Sub-Domänen werden im Modul auch akzeptiert (aber mit geringerer Gewichtung)
 const genericPrefixes = ['add', 'get', 'delete', 'set', 'update', 'create', 'fetch', 'remove'];
 class MethodNameCohesion implements Algorithm {
-  fuzzyScore: Fuzzy;
+  grade: Grade;
   name = "Methodennamen-Kohäsion";
   description = "Misst die funktionale Kohäsion eines Moduls, indem die semantische Ähnlichkeit der Methodennamen analysiert wird. Dabei wird untersucht, ob die Methodennamen gemeinsame Domänen- und, falls vorhanden, Sub-Domänen-Begriffe enthalten. Hohe Ähnlichkeit deutet auf eine Konzentration auf eine **einzelne Verantwortlichkeit (Single Responsibility Principle)** und somit auf eine höhere Kohäsion hin.";
   score: number;
-  detailed: { filePath: string; moduleName: string; moduleScore: number; fuzzyScore?: number; details?: string; }[] = [];
+  detailed: { filePath: string; moduleName: string; moduleScore: number; grade?: number; details?: string; }[] = [];
   issues: {
     filePath: string;
     moduleName: string;
     moduleScore: number;
-    fuzzyScore: Fuzzy;
+    grade: Grade;
     details: {
       description?: string;
     };
   }[] = [];
 
-  addToIssue(moduleName: string, filePath: string, moduleScore: number, fuzzyScore: number, description?: string) {
-    this.issues.push({ moduleName, filePath, moduleScore, fuzzyScore, details: { description } });
+  addToIssue(moduleName: string, filePath: string, moduleScore: number, grade: number, description?: string) {
+    this.issues.push({ moduleName, filePath, moduleScore, grade, details: { description } });
   }
 
   calculate(projectStructure: ProjectStructureReport): void {
@@ -48,37 +48,37 @@ class MethodNameCohesion implements Algorithm {
       functions.forEach(func => functionNames.push(func.getName()));
 
       const { score, issue } = this.checkNameCohesionInModule(functionNames);
-      const fuzzyScore = this.evaluateScore(score);
+      const grade = this.interpreteScore(score);
 
       this.detailed.push({
         filePath: sourceFile.getFilePath(),
         moduleName: sourceFile.getBaseName(),
         moduleScore: score,
-        fuzzyScore: fuzzyScore,
+        grade: grade,
       })
-      logger.debug(`${sourceFile.getFilePath()} has score of ${score} and Fuzzy of (=${mapFuzzyToWording(fuzzyScore)})`);
+      logger.debug(`${sourceFile.getFilePath()} has score of ${score} and Grade of (=${mapGradeToWording(grade)})`);
 
       if (issue !== undefined) {
         const moduleName = sourceFile.getBaseName();
         const filePath = sourceFile.getFilePath();
-        this.addToIssue(moduleName, filePath, score, fuzzyScore, `${issue}`);
+        this.addToIssue(moduleName, filePath, score, grade, `${issue}`);
       }
       moduleScores.push(score);
     }
 
     const overAllScore = this.calculateMean(moduleScores);
-    const overAllFuzzyScore = this.evaluateScore(overAllScore);
-    this.fuzzyScore = overAllFuzzyScore;
+    const overAllGrade = this.interpreteScore(overAllScore);
+    this.grade = overAllGrade;
     this.score = overAllScore;
   }
 
-  interpreteResults(): string {
+  writeResult(): string {
     return [
 `**${this.name}**`,
 ' ',
 `*Beschreibung: ${this.description}*`,
 ' ',
-`Gesamt-Komplexität: ${mapFuzzyToWording(this.fuzzyScore)}`,
+`Gesamt-Komplexität: ${mapGradeToWording(this.grade)}`,
 ' ',
 `**Interpretation der Werte:**`,
 `| Score | Bewertung |`,
@@ -93,8 +93,8 @@ class MethodNameCohesion implements Algorithm {
 `| Modul | Score | Beschreibung |`,
 `| -------- | -------- | -------- |`,
 this.issues.length === 0 && 'keine Problem-Module gefunden',
-this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
-  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Fuzzy-Score: ${issue.fuzzyScore} = ${mapFuzzyToWording(issue.fuzzyScore)}) | ${issue.details.description} |`
+this.issues.sort((a, b) => b.grade - a.grade).map(issue => {
+  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Bewertungsskala: ${issue.grade} = ${mapGradeToWording(issue.grade)}) | ${issue.details.description} |`
 }).join('\n'),
 '-----',
 `**Verbesserungsvorschläge:**`,
@@ -108,7 +108,7 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     const functionCount = functionNames.length;
     if (functionCount <= 1) {
       logger.warn('Modul wird übersprungen, da nicht genügend exportierte Funktionen vorhanden sind, um eine Kohäsion zu bewerten (es werden mind. zwei benötigt).');
-      return { score: 1 }; // TODO: return null oder 1? Wenn nur eine Funktion sollte es trotzdem vermerkt sein? Schließlich macht es wenig Sinn, ein Modul mit nur einer Funktion zu haben
+      return { score: 1 };
     }
 
     // 1. Extrahiere die Keywords anhand des CamelCase aus den Funktionsnamen, z.B. [[get, User, Cart], [delete, User, Cart]]
@@ -134,24 +134,19 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     mostCommonKeywordArray.sort((a, b) => b[1] - a[1]); // z.B. [ 'user', 3 ] verglichen mit [ 'cart', 2 ]
     const foundDomain = mostCommonKeywordArray[0]; // Das erste Element ist das häufigste Keyword
 
-    // TODO: Unterscheidung zwischen Anzahl der exportierten Funktionen (was passiert bei nur einer exportierten Funktion?)
     if (!foundDomain || foundDomain[1] < 2) { // Wenn kein Keyword gefunden wurde oder das häufigste Keyword nur einmal vorkommt
       return { score: 0, issue: `Für dieses Modul konnte keine gemeinsame Hauptdomäne gefunden werden. Kohäsion ist daher nicht gegeben!`};
     }
 
     // 4. Überprüfe, ob es eine Sub-Domäne gibt (z.B. "UserCart" statt nur "User")
-    // TODO: Was wenn es 3 Funktionen gibt mit "User" und 2 mit "UserCart" --> dann wäre "User" die Hauptdomäne, heißt den Check sollte man auch einbauen
-
     const foundSubDomains = new Set<string>();
     keywordsPerFunction.forEach((keywords) => {
-        const subDomainTerm = findSubDomainTermWithContext(foundDomain[0], keywords); // TODO: vielleicht diese Funktion auch in diese Klasse reinpacken?
+        const subDomainTerm = findSubDomainTermWithContext(foundDomain[0], keywords);
         if (subDomainTerm) {
           foundSubDomains.add(subDomainTerm);
         }
     })
 
-
-    // TODO: Geh nochmal über alle Funktionsnamen drüber und zähl wie oft die Sub-Domäne wirklich vorkommt, weil es vorher bei 5 Funktionsnamen ja 10 Durchläufe macht
     const subDomainWordCount: Record<string, number> = Array.from(foundSubDomains).reduce((acc, word) => {
       const wordCount = functionNames.filter(name => name.includes(word)).length;
       acc[word] = wordCount;
@@ -162,8 +157,6 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     const mostCommonSubDomain = Object.entries(subDomainWordCount);
     mostCommonSubDomain.sort((a, b) => b[1] - a[1]); // z.B. [ 'user', 3 ] verglichen mit [ 'cart', 2 ]
     const foundSubDomain = mostCommonSubDomain[0]; // Das erste Element ist das häufigste Keyword
-
-    // TODO: schreib den Code so um, dass du foundDomain.count und foundDomain.word hast, dass ist klarer wie mit den Nummern, du kommst ja selbst schon durcheinander
 
     // 5. Score = Anteil der Funktionen mit diesem Keyword
     const score = this.calculateCohesionScore(functionNames.length, foundDomain[1], foundSubDomain ? foundSubDomain[1] : 0)
@@ -199,17 +192,17 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     }
   }
 
-  evaluateScore(score: number): Fuzzy {
+  interpreteScore(score: number): Grade {
     if (score >= 0 && score <= 0.2) {
-      return Fuzzy.HORRIBLE;
+      return Grade.HORRIBLE;
     } else if (score > 0.2 && score <= 0.4) {
-      return Fuzzy.NOT_GOOD;
+      return Grade.NOT_GOOD;
     } else if (score > 0.4 && score <= 0.6) {
-      return Fuzzy.OKAY;
+      return Grade.OKAY;
     } else if (score > 0.6 && score <= 0.8) {
-      return Fuzzy.GOOD
+      return Grade.GOOD
     } else {
-      return Fuzzy.EXCELLENT;
+      return Grade.EXCELLENT;
     }
   }
 

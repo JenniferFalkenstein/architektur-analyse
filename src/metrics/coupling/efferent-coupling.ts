@@ -1,20 +1,20 @@
 import { FunctionDeclaration, Project, SyntaxKind } from "ts-morph";
-import { Algorithm } from "../interface";
+import { Algorithm } from "../algorithm-interface";
 import logger from "../../helper/logger";
-import { Fuzzy, mapFuzzyToWording } from "../../global/fuzzy-metric";
+import { Grade, mapGradeToWording } from "../../global/grade-scale";
 import { ProjectStructureReport } from "../../helper/analyze-project-structure";
 import { addAllFilesToProject } from "../../helper/ts-morph-project-helper";
 
-class AfferentCoupling implements Algorithm {
-  fuzzyScore: Fuzzy;
-  name = "Kopplung";
-  description = "Misst die **funktionale Kopplung** eines Moduls basierend auf der **Anzahl der von ihm importierten lokalen Module und Services**. Eine hohe Anzahl von Imports (Afferent Coupling) deutet auf eine geringe Unabhängigkeit, erhöhte Wartungskosten und eine geringere Testbarkeit des Moduls hin.";
+class EfferentCoupling implements Algorithm {
+  grade: Grade;
+  name = "Efferente Kopplung";
+  description = "Misst die **funktionale Kopplung** eines Moduls basierend auf der **Anzahl der von ihm importierten lokalen Module und Services**. Eine hohe Anzahl von Imports (Efferent Coupling) deutet auf eine geringe Unabhängigkeit, erhöhte Wartungskosten und eine geringere Testbarkeit des Moduls hin.";
   score: number;
-  detailed: { filePath: string; moduleName: string; moduleScore: number; fuzzyScore?: number; details?: string; }[] = [];
-  issues: { filePath: string; moduleName: string; moduleScore: number; fuzzyScore: Fuzzy; details: {   description?: string; }}[] = [];
+  detailed: { filePath: string; moduleName: string; moduleScore: number; grade?: number; details?: string; }[] = [];
+  issues: { filePath: string; moduleName: string; moduleScore: number; grade: Grade; details: {   description?: string; }}[] = [];
 
-  addToIssue(moduleName: string, filePath: string, moduleScore: number, fuzzyScore: number, description?: string) {
-    this.issues.push({ moduleName, filePath, moduleScore, fuzzyScore, details: { description } });
+  addToIssue(moduleName: string, filePath: string, moduleScore: number, grade: number, description?: string) {
+    this.issues.push({ moduleName, filePath, moduleScore, grade, details: { description } });
   }
 
   calculate(projectStructure: ProjectStructureReport): void {
@@ -25,7 +25,7 @@ class AfferentCoupling implements Algorithm {
     const sourceFiles = project.getSourceFiles();
     const moduleScores: number[] = [];
     for (const sourceFile of sourceFiles) {
-      let afferentCount = 0;
+      let efferentCount = 0;
       const importDeclarations = sourceFile.getImportDeclarations();
 
       for (const importDeclaration of importDeclarations) {
@@ -37,33 +37,33 @@ class AfferentCoupling implements Algorithm {
 
           if (projectStructure.flatModuleMap.includes(sourceFilePath)) {
             // Wenn das Modul bereits in im Zähl-Objekt vorhanden ist, addiere 1, sonst füge neu hinzu
-            afferentCount += 1;
+            efferentCount += 1;
           }
         }
       }
 
-      const fuzzyScore = this.evaluateScore(afferentCount);
-      if (fuzzyScore === Fuzzy.NOT_GOOD || fuzzyScore === Fuzzy.HORRIBLE) {
-        this.addToIssue(sourceFile.getBaseName(), sourceFile.getFilePath(), afferentCount, fuzzyScore, `Dieses Modul hat eine hohe Anzahl an Imports (${afferentCount}), was auf eine starke Kopplung hinweist`);
+      const grade = this.interpreteScore(efferentCount);
+      if (grade === Grade.NOT_GOOD || grade === Grade.HORRIBLE) {
+        this.addToIssue(sourceFile.getBaseName(), sourceFile.getFilePath(), efferentCount, grade, `Dieses Modul hat eine hohe Anzahl an Imports (${efferentCount}), was auf eine starke Kopplung hinweist`);
       }
-      this.detailed.push({ moduleName: sourceFile.getBaseName(), filePath: sourceFile.getFilePath(), moduleScore: afferentCount, fuzzyScore: fuzzyScore })
+      this.detailed.push({ moduleName: sourceFile.getBaseName(), filePath: sourceFile.getFilePath(), moduleScore: efferentCount, grade: grade })
 
-      moduleScores.push(afferentCount);
+      moduleScores.push(efferentCount);
     }
 
     const overAllScore = this.calculateMean(moduleScores);
-    const overAllFuzzyScore = this.evaluateScore(overAllScore);
-    this.fuzzyScore = overAllFuzzyScore;
+    const overAllGrade = this.interpreteScore(overAllScore);
+    this.grade = overAllGrade;
     this.score = overAllScore;
   }
 
-  interpreteResults(): string {
+  writeResult(): string {
     return [
 `**${this.name}**`,
 ' ',
 `*Beschreibung: ${this.description}*`,
 ' ',
-`Gesamt-Komplexität: ${mapFuzzyToWording(this.fuzzyScore)}`,
+`Gesamt-Komplexität: ${mapGradeToWording(this.grade)}`,
 ' ',
 `**Interpretation der Werte:**`,
 `| Score | Bewertung |`,
@@ -78,8 +78,8 @@ class AfferentCoupling implements Algorithm {
 `| Modul | Score | Beschreibung |`,
 `| -------- | -------- | -------- |`,
 this.issues.length === 0 && 'keine Problem-Module gefunden',
-this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
-  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Fuzzy-Score: ${issue.fuzzyScore} = ${mapFuzzyToWording(issue.fuzzyScore)}) | ${issue.details.description} |`
+this.issues.sort((a, b) => b.grade - a.grade).map(issue => {
+  return `| ${issue.filePath} | ${issue.moduleScore.toFixed(2)} (Bewertungsskala: ${issue.grade} = ${mapGradeToWording(issue.grade)}) | ${issue.details.description} |`
 }).join('\n'),
 '-----',
 `**Verbesserungsvorschläge:**`,
@@ -124,22 +124,22 @@ this.issues.sort((a, b) => b.fuzzyScore - a.fuzzyScore).map(issue => {
     return mean;
   }
 
-  evaluateScore(score: number): Fuzzy {
+  interpreteScore(score: number): Grade {
     if (score >= 0 && score <= 1) {
-      return Fuzzy.EXCELLENT;
+      return Grade.EXCELLENT;
     } else if (score > 1 && score <= 4) {
-      return Fuzzy.GOOD;
+      return Grade.GOOD;
     } else if (score > 4 && score <= 7) {
-      return Fuzzy.OKAY;
+      return Grade.OKAY;
     } else if (score > 7 && score < 12) {
-      return Fuzzy.NOT_GOOD;
+      return Grade.NOT_GOOD;
     } else {
-      return Fuzzy.HORRIBLE;
+      return Grade.HORRIBLE;
     }
   }
 
 }
 
 export {
-  AfferentCoupling,
+  EfferentCoupling,
 }
