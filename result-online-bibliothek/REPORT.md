@@ -1,11 +1,11 @@
 # Projekt-Bewertung
-Ergebnis: 1.7666666666666668 (=Gut (=2))
+Ergebnis: 1.8333333333333335 (=Gut (=2))
 ## Wartbarkeit
 | Sub-Charakteristik | Score | Details |
 | -------- | -------- | -------- |
 | Analysierbarkeit | 1.5 (=Gut (=2)) | [Bericht](detailed/analyzability.md) |
 | Modularität | 2 (=Gut (=2)) | [Bericht](detailed/modularity.md) |
-| Wiederverwendbarkeit | 1.6666666666666667 (=Gut (=2)) | [Bericht](detailed/reusability.md) |
+| Wiederverwendbarkeit | 2 (=Gut (=2)) | [Bericht](detailed/reusability.md) |
 | Modifizierbarkeit | 2 (=Gut (=2)) | [Bericht](detailed/modifiability.md) |
 | Testbarkeit | 1.6666666666666667 (=Gut (=2)) | [Bericht](detailed/testability.md) |
 ## Problemmodule

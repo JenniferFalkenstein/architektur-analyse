@@ -191,8 +191,8 @@ class Maintainability implements MaintainabilityInterface {
   }
 
   calculateReusability(): void {
-    const cyclomaticComplexity = new McCabeCyclomaticComplexity();
-    cyclomaticComplexity.calculate(this.projectStructure);
+    const propagationCost = new PropagationCost();
+    propagationCost.calculate(this.projectStructure);
 
     const methodNameCohesion = new MethodNameCohesion();
     methodNameCohesion.calculate(this.projectStructure);
@@ -200,19 +200,19 @@ class Maintainability implements MaintainabilityInterface {
     const coupling = new EfferentCoupling();
     coupling.calculate(this.projectStructure);
 
-    this.subAttributes.reusability.grade = (cyclomaticComplexity.grade + methodNameCohesion.grade + coupling.grade) / 3;
+    this.subAttributes.reusability.grade = (propagationCost.grade + methodNameCohesion.grade + coupling.grade) / 3;
     const content = [
       `[zurück](../REPORT.md)`,
       `# Wiederverwendbarkeit`,
       `Score: ${this.subAttributes.reusability.grade} (=${mapGradeToWording(this.subAttributes.reusability.grade)})`,
       `| Metrik | Score | Bewertungsskala |`,
       `| -------- | -------- | -------- |`,
-      `| [Komplexität](#komplexität) | ${cyclomaticComplexity.score.toFixed(2)} | ${cyclomaticComplexity.grade} (=${mapGradeToWording(cyclomaticComplexity.grade)}) |`,
+      `| [Ausbreitung](#ausbreitung) | ${propagationCost.score.toFixed(2)} | ${propagationCost.grade} (=${mapGradeToWording(propagationCost.grade)}) |`,
       `| [Kohäsion](#kohäsion) | ${methodNameCohesion.score.toFixed(2)} | ${methodNameCohesion.grade} (=${mapGradeToWording(methodNameCohesion.grade)}) |`,
       `| [Kopplung](#kopplung) | ${coupling.score.toFixed(2)} | ${coupling.grade} (=${mapGradeToWording(coupling.grade)}) |`,
       `-----`,
-      `## Komplexität`,
-      cyclomaticComplexity.writeResult(),
+      `## Ausbreitung`,
+      propagationCost.writeResult(),
       `-----`,
       `## Kohäsion`,
       methodNameCohesion.writeResult(),
@@ -223,11 +223,11 @@ class Maintainability implements MaintainabilityInterface {
 
     fs.writeFileSync('result/detailed/reusability.md', content, 'utf-8');
 
-    fs.writeFileSync('result/detailed/modules/reusability.md', '## Cyclomatic Complexity\n' + cyclomaticComplexity.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
+    fs.writeFileSync('result/detailed/modules/reusability.md', '## Propagation Cost\n' + propagationCost.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
     fs.appendFileSync('result/detailed/modules/reusability.md', '## Methodname Cohesion\n' + methodNameCohesion.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
     fs.appendFileSync('result/detailed/modules/reusability.md', '## Efferent Coupling\n' + coupling.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
 
-    this.allIssues.push(...cyclomaticComplexity.issues);
+    this.allIssues.push(...propagationCost.issues);
     this.allIssues.push(...methodNameCohesion.issues);
     this.allIssues.push(...coupling.issues);
   }
