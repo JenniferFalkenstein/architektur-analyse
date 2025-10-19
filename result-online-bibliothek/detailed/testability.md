@@ -1,9 +1,11 @@
 [zurück](../REPORT.md)
 # Testbarkeit
-Score: 1 (=Hervorragend (=1))
+Score: 1.6666666666666667 (=Gut (=2))
 | Metrik | Score | Bewertungsskala |
 | -------- | -------- | -------- |
 | [Komplexität](#komplexität) | 4.97 | 1 (=Hervorragend (=1)) |
+| [Kopplung](#kopplung) | 2.44 | 2 (=Gut (=2)) |
+| [Kohäsion](#kohäsion) | 0.70 | 2 (=Gut (=2)) |
 -----
 ## Komplexität
 **Zyklomatische Komplexität**
@@ -32,3 +34,56 @@ false
 - **Vermeide tiefe Schachtelung:** Reduziere die Verschachtelungstiefe von `if`-Anweisungen, z.B. durch frühe Rückgabe bei Fehlerfällen oder ungültigen Zuständen
 - **Nutze Polymorphie:** Wenn die Verzweigungen auf unterschiedlichen Typen oder Zuständen basieren, nutze **Polymorphie** (Vererbung oder Interfaces) statt expliziter Typ- oder Zustandsprüfungen in der Funktion
 - **Kapsle Ausnahmebehandlung:** Prüfe, ob die Zählung von `try/catch`-Blöcken reduziert werden kann, indem die Fehlerbehandlung in dedizierte Schichten oder Wrapper-Funktionen ausgelagert wird
+## Kopplung
+**Efferente Kopplung**
+ 
+*Beschreibung: Misst die **funktionale Kopplung** eines Moduls basierend auf der **Anzahl der von ihm importierten lokalen Module und Services**. Eine hohe Anzahl von Imports (Efferent Coupling) deutet auf eine geringe Unabhängigkeit, erhöhte Wartungskosten und eine geringere Testbarkeit des Moduls hin.*
+ 
+Gesamt-Komplexität: Gut (=2)
+ 
+**Interpretation der Werte:**
+| Score | Bewertung |
+| -------- | -------- |
+| 0 - 1 | Hervorragend (=1) |
+| 2 - 4 | Gut (=2) |
+| 5 - 7 | Okay (=3) |
+| 8 - 11 | Nicht Okay (=4) |
+| > 12 | Grauenvoll (=5) |
+ 
+**Details zu Problem-Modulen:**
+| Modul | Score | Beschreibung |
+| -------- | -------- | -------- |
+false
+| /Users/jenniferfalkenstein/Desktop/Projekte/Masterarbeit/backend-online-bibliothek/src/services/BookService.ts | 10.00 (Bewertungsskala: 4 = Nicht Gut (=4)) | Dieses Modul hat eine hohe Anzahl an Imports (10), was auf eine starke Kopplung hinweist |
+-----
+**Verbesserungsvorschläge:**
+- **Wende das Single Responsibility Principle (SRP) an:** Überprüfe, ob das Modul zu viele unterschiedliche Aufgaben übernimmt, welche die Nutzung verschiedener, unabhängiger Services erforderlich machen
+- **Wende das Dependency Inversion Principle (DIP) an:** Verwende Interfaces und Abstraktionen statt konkreter Klassen, um die direkte Abhängigkeit zu reduzieren (Inversion of Control/Dependency Injection)
+- **Übergib benötigte Daten über Funktionsparameter:** Vermeide den Import ganzer Services, nur um auf statische Konfigurationen oder Hilfsfunktionen zuzugreifen, die besser als Parameter oder einfache Utility-Funktionen übergeben werden könnten
+## Kohäsion
+**Methodennamen-Kohäsion**
+ 
+*Beschreibung: Misst die funktionale Kohäsion eines Moduls, indem die semantische Ähnlichkeit der Methodennamen analysiert wird. Dabei wird untersucht, ob die Methodennamen gemeinsame Domänen- und, falls vorhanden, Sub-Domänen-Begriffe enthalten. Hohe Ähnlichkeit deutet auf eine Konzentration auf eine **einzelne Verantwortlichkeit (Single Responsibility Principle)** und somit auf eine höhere Kohäsion hin.*
+ 
+Gesamt-Komplexität: Gut (=2)
+ 
+**Interpretation der Werte:**
+| Score | Bewertung |
+| -------- | -------- |
+| > 0.8 - 1 | Hervorragend (=1) |
+| > 0.6 - 0.8 | Gut (=2) |
+| > 0.4 - 0.6 | Okay (=3) |
+| > 0.2 - 0.4 | Nicht Okay (=4) |
+| 0 - 0.2 | Grauenvoll (=5) |
+ 
+**Details zu Problem-Modulen:**
+| Modul | Score | Beschreibung |
+| -------- | -------- | -------- |
+false
+| /Users/jenniferfalkenstein/Desktop/Projekte/Masterarbeit/backend-online-bibliothek/src/reports/ReportGenerator.ts | 0.00 (Bewertungsskala: 5 = Grauenvoll (=5)) | Für dieses Modul konnte keine gemeinsame Hauptdomäne gefunden werden. Kohäsion ist daher nicht gegeben! |
+| /Users/jenniferfalkenstein/Desktop/Projekte/Masterarbeit/backend-online-bibliothek/src/services/BookService.ts | 0.11 (Bewertungsskala: 5 = Grauenvoll (=5)) | Kohäsion wird durch folgende Funktionen beeinträchtig, da sie weder mit der Hauptdomäne ("Book"), noch mit der Sub-Domäne (BookWith) übereinzustimmen scheinen: addMagazine, deleteMagazine, addMovie, deleteMovie, addComic, deleteComic |
+-----
+**Verbesserungsvorschläge:**
+- Überprüfe, ob die enthaltenen Methoden dem **Single Responsibility Principle (SRP)** folgen, d.h., ob sie thematisch nur eine einzige Verantwortlichkeit verfolgen
+- **Extrahiere (Refactoring)** thematisch nicht zusammengehörige Funktionen in separate, dedizierte Module oder Services. Jedes Modul sollte eine klare Domäne oder Sub-Domäne abbilden
+- **Passe die Methodennamen an**, indem du konsistente Präfixe oder Namenskonventionen verwendest, die die Domäne des Moduls widerspiegeln (z.B. statt 'getId' und 'getData' lieber 'getUserId' und 'getUserData')

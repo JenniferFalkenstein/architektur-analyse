@@ -1,5 +1,5 @@
 # Projekt-Bewertung
-Ergebnis: 1.4666666666666666 (=Hervorragend (=1))
+Ergebnis: 1.5333333333333332 (=Gut (=2))
 ## Wartbarkeit
 | Sub-Charakteristik | Score | Details |
 | -------- | -------- | -------- |
@@ -7,7 +7,7 @@ Ergebnis: 1.4666666666666666 (=Hervorragend (=1))
 | Modularität | 1.5 (=Gut (=2)) | [Bericht](detailed/modularity.md) |
 | Wiederverwendbarkeit | 1.3333333333333333 (=Hervorragend (=1)) | [Bericht](detailed/reusability.md) |
 | Modifizierbarkeit | 2 (=Gut (=2)) | [Bericht](detailed/modifiability.md) |
-| Testbarkeit | 1 (=Hervorragend (=1)) | [Bericht](detailed/testability.md) |
+| Testbarkeit | 1.3333333333333333 (=Hervorragend (=1)) | [Bericht](detailed/testability.md) |
 ## Problemmodule
 | Modul | Probleme |
 | -------- | -------- |

@@ -121,7 +121,13 @@ class Maintainability implements MaintainabilityInterface {
     const cyclomaticComplexity = new McCabeCyclomaticComplexity();
     cyclomaticComplexity.calculate(this.projectStructure);
 
-    this.subAttributes.testability.grade = cyclomaticComplexity.grade;
+    const cohesion = new MethodNameCohesion();
+    cohesion.calculate(this.projectStructure);
+
+    const coupling = new EfferentCoupling();
+    coupling.calculate(this.projectStructure);
+
+    this.subAttributes.testability.grade = (cyclomaticComplexity.grade + cohesion.grade + coupling.grade) / 3;
 
     const content = [
       `[zurück](../REPORT.md)`,
@@ -130,15 +136,25 @@ class Maintainability implements MaintainabilityInterface {
       `| Metrik | Score | Bewertungsskala |`,
       `| -------- | -------- | -------- |`,
       `| [Komplexität](#komplexität) | ${cyclomaticComplexity.score.toFixed(2)} | ${cyclomaticComplexity.grade} (=${mapGradeToWording(cyclomaticComplexity.grade)}) |`,
+      `| [Kopplung](#kopplung) | ${coupling.score.toFixed(2)} | ${coupling.grade} (=${mapGradeToWording(coupling.grade)}) |`,
+      `| [Kohäsion](#kohäsion) | ${cohesion.score.toFixed(2)} | ${cohesion.grade} (=${mapGradeToWording(cohesion.grade)}) |`,
       `-----`,
       `## Komplexität`,
       cyclomaticComplexity.writeResult(),
+      `## Kopplung`,
+      coupling.writeResult(),
+      `## Kohäsion`,
+      cohesion.writeResult(),
     ].join('\n');
 
     fs.writeFileSync('result/detailed/testability.md', content, 'utf-8');
     fs.writeFileSync('result/detailed/modules/testability.md', cyclomaticComplexity.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
+    fs.appendFileSync('result/detailed/modules/testability.md', '## Coupling\n' + coupling.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
+    fs.appendFileSync('result/detailed/modules/testability.md', '## Cohesion\n' + cohesion.detailed.sort((a, b) => b.grade - a.grade).map((detail) => `Score: ${detail.moduleScore} (=${detail.grade}) [${detail.filePath}] ${detail.details || ''}\n`).join('\n'), 'utf-8');
 
     this.allIssues.push(...cyclomaticComplexity.issues);
+    this.allIssues.push(...coupling.issues);
+    this.allIssues.push(...cohesion.issues)
   }
 
   calculateModularity(): void {
