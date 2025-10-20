@@ -32,7 +32,5 @@ false
 -----
 **Verbesserungsvorschläge:**
 - **Reduziere die Anzahl der abhängigen Module (Efferent Coupling):** Versuche, die Anzahl der Stellen im Code zu verringern, die dieses Modul importieren, da jede dieser Stellen bei einer Änderung betroffen sein kann
-- **Wende das Dependency Inversion Principle (DIP) an:** Mache das Modul von Abstraktionen (Interfaces) abhängig statt von konkreten Implementierungen (Dependency Injection), um die Richtung der Abhängigkeit umzukehren
 - **Kapsle interne Details:** Mache Implementierungsdetails (z.B. interne Datenstrukturen, private Hilfsfunktionen) nicht über die öffentliche Schnittstelle zugänglich, um zu verhindern, dass externe Module von ihnen abhängig werden
-- **Vermeide globale veränderbare Zustände:** Stelle sicher, dass das Modul keinen globalen Zustand verwaltet oder ändert, auf den viele andere Module zugreifen, da dies zu unvorhersehbaren Seiteneffekten führt
 - **Definiere stabile Abstraktionen:** Wenn das Modul als zentraler Dienst (Hub) dient, sollte seine Schnittstelle (API) hochstabil sein, damit abhängige Module nicht ständig angepasst werden müssen

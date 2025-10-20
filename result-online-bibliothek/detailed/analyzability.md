@@ -62,5 +62,4 @@ false
 **Verbesserungsvorschläge:**
 - **Refactoring durch Extraktion:** Identifiziere logisch abgrenzbare Blöcke innerhalb der Funktion und lagere diese als private, gut benannte Hilfsfunktionen (Helper Methods) aus
 - **Wende das Single Responsibility Principle (SRP) an:** Überprüfe, ob die Funktion mehrere unabhängige Schritte durchführt (z.B. Validierung, Berechnung, Speicherung). Teile die Funktion entlang dieser Verantwortlichkeiten auf
-- **Nutze Datenstrukturen zur Reduktion von Code:** Ersetze lange Listen von Variablen- oder Parameter-Definitionen, die zur Konfiguration dienen, durch geeignete Datenstrukturen (z.B. Konfigurationsobjekte)
 - **Reduziere die Komplexität:** Oft geht eine hohe Funktionslänge mit einer hohen Zyklomatischen Komplexität einher. Konzentriere dich darauf, Verzweigungen und Schachtelungen zu reduzieren, was die Länge automatisch verringert
